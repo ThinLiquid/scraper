@@ -1,0 +1,14 @@
+thinliquid's button scraper
+---------------------------
+
+how to use scraper:
+
+- bun i
+- bun run src/index.ts [url to scrape]
+
+how to use server:
+
+- bun i
+- bun run server.ts
+
+live at: https://buttons.thinliquid.dev
