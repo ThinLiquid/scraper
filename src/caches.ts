@@ -89,3 +89,4 @@ class CacheSet<T> {
 
 export const visitedUrls = new Set<string>('./urls.json');
 export const imageCache = new CacheMap<string, { hash?: string, size?: { width: number, height: number } | ISizeCalculationResult | false }>('./cache.json');
+export const httpCache = new Map<string, { etag: string, body: string, headers: Headers }>();

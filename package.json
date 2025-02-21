@@ -13,20 +13,14 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "canvas": "^3.1.0",
     "colorthief": "^2.6.0",
     "express": "^4.21.2",
     "fuse.js": "^7.1.0",
-    "gif-encoder-2": "^1.0.5",
     "image-size": "^1.2.0",
     "inherits": "^2.0.4",
-    "jsdom": "^26.0.0",
-    "lowdb": "^7.0.1",
     "node-html-parser": "^7.0.1",
     "node-vibrant": "^4.0.3",
     "p-queue": "^8.1.0",
-    "queue": "^7.0.0",
-    "sharp": "^0.33.5",
     "signale": "^1.4.0"
   }
 }

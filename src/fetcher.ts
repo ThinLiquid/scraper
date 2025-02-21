@@ -1,5 +1,5 @@
 import { HTMLElement, parse } from 'node-html-parser';
-import {  hashImage } from './utils.ts';
+import {  hashImage, isLikelyRelevant, smartFetch } from './utils.ts';
 import { BUTTON_SIZE, MAX_DEPTH, MAX_CONCURRENCY } from './constants.ts';
 import { imageCache, visitedUrls } from './caches.ts';
 import { Signale } from 'signale';
@@ -62,43 +62,59 @@ const processImage = async (
   if (!src) return;
   src = new URL(src, url).toString();
 
-  let buffer: ArrayBuffer | undefined
-  const res = await queue.add(() => fetch(src))
-  if (!res) return
-  buffer = await res.arrayBuffer()
-
-  let size: ISizeCalculationResult | null | undefined | false
-  if (imageCache.has(src)) {
-    size = imageCache.get(src)?.size
-  }
-  if (size == false) return
-  if (size == null) {
-    try {
-      size = sizeOf(new Uint8Array(buffer))
-    } catch{}
-    if (!size || size.width !== BUTTON_SIZE.width || size.height !== BUTTON_SIZE.height) {
-      imageCache.set(src, { size: false })
-      return;
+  // Early cache check: if we've processed this image before, skip refetching.
+  const cached = imageCache.get(src);
+  if (cached && cached.size !== undefined) {
+    if (cached.size === false) return; // Not a valid button image.
+    // Use the cached hash to update the button record.
+    const hash = cached.hash;
+    if (hash) {
+      await db.updateButton(hash, async (button) => {
+        if (button) {
+          logger.warn(`(${index}/${length}) [${url}] Duplicate found ${src}, merging into ${hash}`);
+          if (!button.foundAt.includes(url)) button.foundAt.push(url);
+          if (!button.srcs.includes(src)) button.srcs.push(src);
+          if (href && !button.hrefs.includes(href)) button.hrefs.push(href);
+          const alt = img.getAttribute('alt');
+          const title = img.getAttribute('title');
+          if (alt && !button.alts.includes(alt)) button.alts.push(alt);
+          if (title && !button.alts.includes(title)) button.alts.push(title);
+          return button;
+        }
+        return button;
+      });
     }
-    didFindButton = true;
-    imageCache.set(src, { size })
+    // (Update host info similarly here if needed.)
+    return [true, href ? [href] : []];
   }
 
-  let hash: string | undefined
-  if (imageCache.has(src)) {
-    hash = imageCache.get(src)?.hash
+  // Otherwise, fetch and process the image.
+  const res = await queue.add(() => smartFetch(src));
+  if (!res) return;
+  const buffer = await res.arrayBuffer();
+
+  let size: ISizeCalculationResult | null | undefined | false;
+  try {
+    size = sizeOf(new Uint8Array(buffer));
+  } catch (err) {
+    imageCache.set(src, { size: false });
+    return;
   }
-  if (hash == null) {
-    hash = await hashImage(buffer)
-    imageCache.set(src, { size, hash })
+  if (!size || size.width !== BUTTON_SIZE.width || size.height !== BUTTON_SIZE.height) {
+    imageCache.set(src, { size: false });
+    return;
   }
+  didFindButton = true;
+
+  let hash: string | undefined = await hashImage(buffer);
+  imageCache.set(src, { size, hash });
 
   const alt = img.getAttribute('alt');
   const title = img.getAttribute('title');
 
   await db.updateButton(hash, async (button) => {
     if (button) {
-      logger.warn(`(${index}/${length}) [${url}] Duplicate found ${src}, merging into ${hash}`)
+      logger.warn(`(${index}/${length}) [${url}] Duplicate found ${src}, merging into ${hash}`);
       if (!button.foundAt.includes(url)) button.foundAt.push(url);
       if (!button.srcs.includes(src)) button.srcs.push(src);
       if (href && !button.hrefs.includes(href)) button.hrefs.push(href);
@@ -106,8 +122,8 @@ const processImage = async (
       if (title && !button.alts.includes(title)) button.alts.push(title);
       return button;
     } else {
-      logger.success(`(${index}/${length}) [${url}] Button found n\' saved: ${src}`)
-      await writeFile(`./buttons/${hash}`, new Uint8Array(buffer))
+      logger.success(`(${index}/${length}) [${url}] Button found and saved: ${src}`);
+      await writeFile(`./buttons/${hash}`, new Uint8Array(buffer));
       return {
         srcs: [src],
         alts: alt ? [alt] : [],
@@ -119,10 +135,10 @@ const processImage = async (
     }
   });
 
-  
-
   try {
-    const buttonHrefHost = new URL(href ?? url).host
+    const res = await smartFetch(href ?? url)
+    const buttonHrefHost = new URL(res.url).host
+
     await db.updateHost(buttonHrefHost, (host) => {
       if (host) {
         pushIfMissing(host.buttons, hash)
@@ -168,7 +184,7 @@ export const fetchPage = async (
     let hrefs: [string, string[]?, number?, boolean?][] = [];
 
     try {
-      response = await queue.add(() => fetch(url));
+      response = await queue.add(() => smartFetch(url));
       if (!response) return;
       visitedUrls.add(normalizedUrl);
       logger.info(`Fetched ${url} (depth: ${depth})`);
@@ -222,7 +238,9 @@ export const fetchPage = async (
         if (result != null) {
           didFindButton = result[0];
           result[1].forEach(x => {
-            pushIfMissing(hrefs, [x, newPath, depth, didFindButton]);
+            if (href != null && isLikelyRelevant(href, url, didFindButton)) {
+              pushIfMissing(hrefs, [x, newPath, depth, didFindButton]);
+            }
           });
         }
         globalIndex++
@@ -230,7 +248,7 @@ export const fetchPage = async (
 
       try {
         if (href != null) {
-          if ((a.querySelector('img') == null && didLastFindButton) || (urlObject.host === new URL(href).host )) {
+          if (isLikelyRelevant(href, url, didFindButton)) {
             pushIfMissing(hrefs, [href, newPath, depth, didFindButton]);
           }
         }

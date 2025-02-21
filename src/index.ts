@@ -1,6 +1,12 @@
 import { existsSync, mkdirSync } from 'fs';
 import { fetchPage } from './fetcher.ts';
 import { visitedUrls } from './caches.ts';
+import { Signale } from 'signale';
+import { MAX_DEPTH } from './constants.ts';
+
+const logger = new Signale({
+  scope: 'main'
+})
 
 function uniq(a) {
   var seen = {};
@@ -41,4 +47,31 @@ const start = async () => {
   }
 };
 
-start();
+export const crawl = async (startingUrl: string) => {
+  let pendingUrls = new Set<string>([startingUrl]);
+  let nextDepthUrls = new Set<string>();
+  let depth = 0;
+
+  while (pendingUrls.size > 0 && depth < MAX_DEPTH) {
+    logger.info(`Crawling depth ${depth} with ${pendingUrls.size} URLs`);
+    const crawlPromises = Array.from(pendingUrls).map(url => fetchPage(url, [], depth, false));
+    const results = await Promise.all(crawlPromises);
+    results.forEach(hrefsArray => {
+      if (hrefsArray) {
+        hrefsArray.forEach(([url]) => {
+          const urlObject = new URL(url);
+          const normalizedUrl = urlObject.origin + urlObject.pathname;
+          if (!visitedUrls.has(normalizedUrl)) {
+            nextDepthUrls.add(url);
+          }
+        });
+      }
+    });
+    pendingUrls = nextDepthUrls;
+    nextDepthUrls = new Set<string>();
+    depth++;
+  }
+};
+
+const urls = process.argv.splice(2)
+await Promise.all(urls.map(x => crawl(x)))

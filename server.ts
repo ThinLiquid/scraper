@@ -137,37 +137,41 @@ app.get('/search', async (req, res) => {
           ${item.paths.map(x => `<li>${x.join(' > ')}</li>`).join('')}
         </ul>
       </details>
-      <h4>Buttons</h4>
-      <table>
-        <thead>
-          <tr>
-            <th>hash</th>
-            <th>button</th>
-            <th>alt</th>
-            <th>src</th>
-            <th>href</th>
-            <th>found at</th>
-            <th>timestamp</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${item.buttons.map((hash) => {
-            const button = db.buttons[hash]
+      <details>
+        <summary>buttons</summary>
 
-            return `
+        <table>
+          <thead>
             <tr>
-              <td>${hash}</td>
-              <td><a href="${button.hrefs[0] || ''}"><img src="${button.srcs[0]}" alt="${button.alts[0] || ''}" /></a></td>
-              <td style="background:${button.alts[0] || '' ? 'transparent' : 'lightgrey'}">${button.alts[0] || ''}</td>
-              <td>${button.srcs.join('<br/>')}</td>
-              <td style="background:${button.hrefs[0] || '' ? 'transparent' : 'lightgrey'}">${button.hrefs[0] || ''}</td>
-              <td>${button.foundAt.join('<br/>')}</td>
-              <td>${new Date(button.timestamp).toUTCString()}</td>
+              <th>hash</th>
+              <th>button</th>
+              <th>alt</th>
+              <th>src</th>
+              <th>href</th>
+              <th>found at</th>
+              <th>timestamp</th>
             </tr>
-          `
-          }).join('')}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            ${item.buttons.map((hash) => {
+              const button = db.buttons[hash]
+
+              return `
+              <tr>
+                <td>${hash}</td>
+                <td><a href="${button.hrefs[0] || ''}"><img src="${button.srcs[0]}" alt="${button.alts[0] || ''}" /></a></td>
+                <td style="background:${button.alts[0] || '' ? 'transparent' : 'lightgrey'}">${button.alts[0] || ''}</td>
+                <td>${button.srcs.join('<br/>')}</td>
+                <td style="background:${button.hrefs[0] || '' ? 'transparent' : 'lightgrey'}">${button.hrefs[0] || ''}</td>
+                <td>${button.foundAt.join('<br/>')}</td>
+                <td>${new Date(button.timestamp).toUTCString()}</td>
+              </tr>
+            `
+            }).join('')}
+          </tbody>
+        </table>
+      </details>
+      
       <hr/>
     </div>
   `).join('');

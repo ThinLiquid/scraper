@@ -32,10 +32,11 @@ export class CustomDB {
 
   async updateButton(
     hash: string,
-    updateFn: (button: Button | null) => Button | Promise<Button>
+    updateFn: (button: Button | null) => Button | null | Promise<Button | null>
   ) {
     const currentButton = await this.getButton(hash);
     const updatedButton = await updateFn(currentButton);
+    if (updatedButton == null) return
     const value = JSON.stringify(updatedButton);
 
     this.db.run("INSERT OR REPLACE INTO buttons (hash, value) VALUES (?, ?)", hash, value);
@@ -52,10 +53,11 @@ export class CustomDB {
 
   async updateHost(
     host: string,
-    updateFn: (host: Host | null) => Host | Promise<Host>
+    updateFn: (host: Host | null) => Host | null | Promise<Host | null>
   ) {
     const currentHost = await this.getHost(host);
     const updatedHost = await updateFn(currentHost);
+    if (updatedHost == null) return
     const value = JSON.stringify(updatedHost);
     this.db.run("INSERT OR REPLACE INTO hosts (host, value) VALUES (?, ?)", host, value);
     return updatedHost

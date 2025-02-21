@@ -8,7 +8,7 @@ export interface Button {
 }
 
 export interface Host {
-  host: string;
+  host: keyof ButtonDB['hosts'];
   metadata: SiteMetadata[];
   buttons: string[];
   urls: string[];
