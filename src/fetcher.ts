@@ -96,7 +96,6 @@ const processImage = async (
   const alt = img.getAttribute('alt');
   const title = img.getAttribute('title');
 
-  // Combine the update for an existing button and creation of a new one into a single update call.
   await db.updateButton(hash, async (button) => {
     if (button) {
       logger.warn(`(${index}/${length}) [${url}] Duplicate found ${src}, merging into ${hash}`)

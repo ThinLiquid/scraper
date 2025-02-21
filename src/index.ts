@@ -37,7 +37,6 @@ const start = async () => {
         .filter(x => x != null)
     )
 
-    // @ts-ignore
     queue.push(...newHrefs);
   }
 };

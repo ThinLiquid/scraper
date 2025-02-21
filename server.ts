@@ -70,12 +70,11 @@ app.get('/spectrum', async (req, res) => {
     })
   )).filter(Boolean);
   
-  // Sort using direct numerical comparison
   buttons.sort((a, b) => {
-    const [ar, ag, ab] = a.color;
-    const [br, bg, bb] = b.color;
+    const [ar, ag, ab] = a!.color;
+    const [br, bg, bb] = b!.color;
     return ar - br || ag - bg || ab - bb;
-  });  
+  });
 
   res.send(`
     <a href="./">Back</a>
@@ -173,7 +172,6 @@ app.get('/search', async (req, res) => {
     </div>
   `).join('');
 
-  // Build pagination controls
   let paginationHTML = `<div class="pagination">`;
   if (page > 1) {
     paginationHTML += `<a href="./search?q=${encodeURIComponent(q)}&page=${page - 1}&pageSize=${pageSize}">Previous</a>`;
