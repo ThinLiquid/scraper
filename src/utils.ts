@@ -1,10 +1,12 @@
 import { Signale } from 'signale';
-import sizeOf from 'image-size';
+import PQueue from 'p-queue';
 import { httpCache } from './caches';
 
 const logger = new Signale({
   scope: 'utils',
 });
+
+const queue = new PQueue({ concurrency: 10 })
 
 export const hashImage = async (buffer: ArrayBuffer) => {
   const hash = await crypto.subtle.digest('SHA-256', new Uint8Array(buffer));
@@ -19,7 +21,8 @@ export async function smartFetch(url: string, options?: RequestInit): Promise<Re
   if (cached?.etag) {
     headers['If-None-Match'] = cached.etag;
   }
-  const response = await fetch(url, { ...options, headers });
+  const response = await queue.add(() => fetch(url, { ...options, headers }));
+  if (!response) return
   if (response.status === 304 && cached) {
     // Recreate a Response from the cached data.
     return new Response(cached.body, { headers: cached.headers });

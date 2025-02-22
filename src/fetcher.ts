@@ -1,10 +1,10 @@
 import { HTMLElement, parse } from 'node-html-parser';
-import {  hashImage, isLikelyRelevant, smartFetch } from './utils.ts';
-import { BUTTON_SIZE, MAX_DEPTH } from './constants.ts';
-import { imageCache, visitedUrls } from './caches.ts';
+import {  hashImage, isLikelyRelevant, smartFetch } from './utils';
+import { BUTTON_SIZE, MAX_DEPTH } from './constants';
+import { imageCache, visitedUrls } from './caches';
 import { Signale } from 'signale';
-import { ButtonDB } from './types.ts';
-import db from './db.ts';
+import { ButtonDB } from './types';
+import db from './db';
 import { ISizeCalculationResult } from 'image-size/dist/types/interface';
 import { writeFile } from 'fs/promises'
 import sizeOf from 'image-size'
@@ -120,7 +120,7 @@ const processImage = async (
       return button;
     } else {
       logger.success(`(${index}/${length}) [${url}] Button found and saved: ${src}`);
-      await writeFile(`./buttons/${hash}`, new Uint8Array(buffer));
+      await writeFile(`./buttons/${hash}.${size.type ?? 'png'}`, new Uint8Array(buffer));
       return {
         srcs: [src],
         alts: alt ? [alt] : [],
