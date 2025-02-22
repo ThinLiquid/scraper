@@ -47,31 +47,35 @@ const start = async () => {
   }
 };
 
-export const crawl = async (startingUrl: string) => {
-  let pendingUrls = new Set<string>([startingUrl]);
-  let nextDepthUrls = new Set<string>();
+export const crawl = async (startingUrls: string[]) => {
+  console.log(startingUrls)
+  let pendingUrls = new Set<[string, string[]?, number?, boolean?]>(
+    startingUrls.map(x => [x])
+  );
+  console.log(pendingUrls.entries())
+  let nextDepthUrls = new Set<[string, string[]?, number?, boolean?]>();
   let depth = 0;
 
   while (pendingUrls.size > 0 && depth < MAX_DEPTH) {
     logger.info(`Crawling depth ${depth} with ${pendingUrls.size} URLs`);
-    const crawlPromises = Array.from(pendingUrls).map(url => fetchPage(url, [], depth, false));
+    const crawlPromises = Array.from(pendingUrls).map(args => fetchPage(args[0], args[1], args[2] ? args[2] + 1 : args[2], args[3]));
     const results = await Promise.all(crawlPromises);
     results.forEach(hrefsArray => {
       if (hrefsArray) {
-        hrefsArray.forEach(([url]) => {
-          const urlObject = new URL(url);
+        hrefsArray.forEach((args) => {
+          const urlObject = new URL(args[0]);
           const normalizedUrl = urlObject.origin + urlObject.pathname;
           if (!visitedUrls.has(normalizedUrl)) {
-            nextDepthUrls.add(url);
+            nextDepthUrls.add(args);
           }
         });
       }
     });
     pendingUrls = nextDepthUrls;
-    nextDepthUrls = new Set<string>();
+    nextDepthUrls = new Set<[string, string[]?, number?, boolean?]>();
     depth++;
   }
 };
 
 const urls = process.argv.splice(2)
-await Promise.all(urls.map(x => crawl(x)))
+await crawl(urls)

@@ -1,10 +1,9 @@
 import { HTMLElement, parse } from 'node-html-parser';
 import {  hashImage, isLikelyRelevant, smartFetch } from './utils.ts';
-import { BUTTON_SIZE, MAX_DEPTH, MAX_CONCURRENCY } from './constants.ts';
+import { BUTTON_SIZE, MAX_DEPTH } from './constants.ts';
 import { imageCache, visitedUrls } from './caches.ts';
 import { Signale } from 'signale';
 import { ButtonDB } from './types.ts';
-import PQueue from 'p-queue';
 import db from './db.ts';
 import { ISizeCalculationResult } from 'image-size/dist/types/interface';
 import { writeFile } from 'fs/promises'
@@ -13,8 +12,6 @@ import sizeOf from 'image-size'
 const logger = new Signale({
   scope: 'fetcher',
 });
-
-export const queue = new PQueue({ concurrency: MAX_CONCURRENCY });
 
 export const createOrGetHostObject = (
   urlObject: URL,
@@ -89,7 +86,7 @@ const processImage = async (
   }
 
   // Otherwise, fetch and process the image.
-  const res = await queue.add(() => smartFetch(src));
+  const res = await smartFetch(src);
   if (!res) return;
   const buffer = await res.arrayBuffer();
 
@@ -184,7 +181,7 @@ export const fetchPage = async (
     let hrefs: [string, string[]?, number?, boolean?][] = [];
 
     try {
-      response = await queue.add(() => smartFetch(url));
+      response = await smartFetch(url);
       if (!response) return;
       visitedUrls.add(normalizedUrl);
       logger.info(`Fetched ${url} (depth: ${depth})`);

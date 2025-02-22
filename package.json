@@ -20,7 +20,6 @@
     "inherits": "^2.0.4",
     "node-html-parser": "^7.0.1",
     "node-vibrant": "^4.0.3",
-    "p-queue": "^8.1.0",
     "signale": "^1.4.0"
   }
 }
